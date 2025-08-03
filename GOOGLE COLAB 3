@@ -1,0 +1,65 @@
+!pip install reportlab
+
+import pandas as pd
+import os
+from reportlab.lib.pagesizes import A4  
+from reportlab.platypus import Table, TableStyle, Paragraph, SimpleDocTemplate, Spacer
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+
+def generate_pdf_report(data, output_pdf):
+    doc = SimpleDocTemplate(output_pdf, pagesize=A4)
+    elements = []
+
+    styles = getSampleStyleSheet()
+    title = Paragraph("📄 Automated Data Analysis Report", styles['Title'])
+    elements.append(title)
+    elements.append(Spacer(1, 20))
+
+    desc = Paragraph("This report was auto-generated from CSV data using Python and ReportLab.", styles['Normal'])
+    elements.append(desc)
+    elements.append(Spacer(1, 20))
+
+    summary_df = data.describe().round(2)
+    table_data = [summary_df.columns.insert(0, 'Statistic').tolist()]
+    for idx in summary_df.index:
+        row = [idx] + summary_df.loc[idx].tolist()
+        table_data.append(row)
+
+    table = Table(table_data, repeatRows=1)
+    table_style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#003366')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.whitesmoke),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+    ])
+    table.setStyle(table_style)
+
+    elements.append(table)
+    doc.build(elements)
+
+    print(f"✅ Report saved as: {output_pdf}")
+
+def main():
+    input_file = "sample_data.csv"
+
+    if not os.path.exists(input_file):
+        print("⚠️ CSV file not found. Creating a sample one...")
+        sample_df = pd.DataFrame({
+            'A': [10, 20, 30, 40],
+            'B': [15, 25, 35, 45],
+            'C': [5, 10, 15, 20]
+        })
+        sample_df.to_csv(input_file, index=False)
+        print("✅ Sample CSV created: sample_data.csv")
+
+    data = pd.read_csv(input_file)
+    output_pdf = "automated_data_report.pdf"
+    generate_pdf_report(data, output_pdf)
+
+    from google.colab import files
+    files.download(output_pdf)
+
+main()
